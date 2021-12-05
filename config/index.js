@@ -12,7 +12,9 @@ module.exports = {
     assetsPublicPath: '/',
     proxyTable: {
       '/': {
-        target: ' http://114.245.159.63:33301',
+        // target: ' http://114.245.159.63:33301',
+        // target:"http://vatnh2.natappfree.cc",
+        target:"http://114.252.173.106:33301/",
         changeOrigin: true,
         pathRewrite: {
             '^/api': ''

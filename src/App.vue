@@ -29,7 +29,7 @@ div{
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  HEIGHT:100%;
+  height:100%;
   /* margin-top: 60px; */
 }
 </style>

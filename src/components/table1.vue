@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div v-if="!startYears" class="change-years-wrap">
+    <div v-if="!startYears && !isView" class="change-years-wrap">
       <span>请先选择开始年份：</span>
       <el-date-picker
         v-model="startYears"
@@ -11,7 +11,7 @@
       >
       </el-date-picker>
     </div>
-    <div v-else style="width: 100%">
+    <div v-else style="width: 100%" v-loading="submiting">
       <div class="main-table-wrap">
         <div class="table-title-wrap">
           <span>投入产出价值表</span>
@@ -98,7 +98,7 @@
                   <div class="data-group-grid">
                     <el-input
                       v-if="group.type !== 'text'"
-                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');"
+                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');this.dispatchEvent(new Event('compositionend'))"
                       v-model="yearItem.other"
                       placeholder="请输入"
                     ></el-input>
@@ -108,7 +108,7 @@
                     <el-input
                       v-if="group.type !== 'text'"
                       v-model="yearItem.in.directCost"
-                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');"
+                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');this.dispatchEvent(new Event('compositionend'))"
                       placeholder="请输入"
                     ></el-input>
                     <span v-else>{{ yearItem.in.directCost }}</span>
@@ -116,7 +116,7 @@
                   <div class="data-group-grid">
                     <el-input
                       v-if="group.type !== 'text'"
-                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');"
+                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');this.dispatchEvent(new Event('compositionend'))"
                       v-model="yearItem.in.indirectCost"
                       placeholder="请输入"
                     ></el-input>
@@ -125,7 +125,7 @@
                   <div class="data-group-grid">
                     <el-input
                       v-if="group.type !== 'text'"
-                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');"
+                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');this.dispatchEvent(new Event('compositionend'))"
                       v-model="yearItem.in.otherCost"
                       placeholder="请输入"
                     ></el-input>
@@ -137,7 +137,7 @@
                   <div class="data-group-grid">
                     <el-input
                       v-if="group.type !== 'text'"
-                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');"
+                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');this.dispatchEvent(new Event('compositionend'))"
                       v-model="yearItem.out.directOutput"
                       placeholder="请输入"
                     ></el-input>
@@ -146,7 +146,7 @@
                   <div class="data-group-grid">
                     <el-input
                       v-if="group.type !== 'text'"
-                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');"
+                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');this.dispatchEvent(new Event('compositionend'))"
                       v-model="yearItem.out.indirectOutput"
                       placeholder="请输入"
                     ></el-input>
@@ -155,7 +155,7 @@
                   <div class="data-group-grid">
                     <el-input
                       v-if="group.type !== 'text'"
-                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');"
+                      onkeyup="this.value = this.value.replace(/[^\d.]/g,'');this.dispatchEvent(new Event('compositionend'))"
                       v-model="yearItem.out.otherOutput"
                       placeholder="请输入"
                     ></el-input>
@@ -200,7 +200,7 @@
           </div>
         </div>
       </div>
-      <div style="margin-top: 10px">
+      <div style="margin-top: 10px" v-if="!isView">
         <el-button type="primary" @click="addYears" :disabled="addBtnDisable">年份+1</el-button>
         <el-button type="primary" @click="submit">提交</el-button>
       </div>
@@ -229,7 +229,10 @@ const TPL = {
 export default {
   data() {
     return {
-      name: "xxx项目",
+      isView:false,
+      id:"",//主ID
+      submiting:false,
+      name: "",
       addBtnDisable:false,
       startYears: "",
       addUpToYears: "",
@@ -378,8 +381,42 @@ export default {
       }
     }
   },
-  mounted() {},
+  activated(){
+      let query = this.$route.query;
+    this.inputOutputValueId = query.id;
+    if(query.id){
+      this.isView = true;
+      this.getData();
+    }
+  },
+  created(){
+    let query = this.$route.query;
+    this.inputOutputValueId = query.id;
+    if(query.id){
+      this.isView = true;
+      this.getData();
+    }
+  },
+  mounted() {
+    
+  },
   methods: {
+    getData(){
+      let { inputOutputValueId } = this;
+      let url = `/output/caculate/${inputOutputValueId}`;
+      Api.get(url)
+        .then((res) => {
+          if (res.code == "200") {
+            let info = res.data.inTable1 || {};
+            this.name = info.name;
+            this.ratio = info.ratio;
+            this.achievementType = info.achievementType;
+            this.groups = info.groups;
+          }
+          console.log(res, "res");
+        })
+        .catch((resp) => {});
+    },
     setDefaultYearsData(year) {
       let { groups } = this;
       _.each(groups, (groupItem) => {
@@ -509,6 +546,7 @@ export default {
       let { groups, name, ratio, achievementType  } = this;
       let isOK = this.valideData();
       if(!isOK) return;
+      this.submiting = true;
       let url = '/inputOutputValue/save';
       let param = {
         name,
@@ -517,14 +555,18 @@ export default {
         groups
       }
       Api.post(url,param).then((res)=>{
-        if(code.code == '200'){
-          alert('保存成功');
+        this.submiting = false;
+        if(res.code == '200'){
+          let { data } = res;
+          this.id = data;
+          this.$router.push({name:'table2',query: {id:data}})
         }else{
-          alert('保存失败');
+          // this.$message.error('保存失败，错误信息：' + res.msg);
         }
         console.log(res,'res')
 			}).catch((resp)=>{
-        
+        // this.$message.error('发生未知异常，保存失败');
+        this.submiting = false;
 			})
     }
   },
@@ -556,9 +598,14 @@ export default {
 <style lang="less" scoped>
 .page-container {
   display: flex;
-  height: 100%;
+  // height: 100%;
   overflow: auto;
   justify-content: center;
+  position: absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  right: 0;
   .change-years-wrap {
     display: flex;
     align-items: center;
