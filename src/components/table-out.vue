@@ -1,5 +1,5 @@
 <template>
-  <div v-if="canRender" style="padding:0 30px;height:100%" class="wrap">
+  <div v-if="canRender" style="padding:0 30px;height:100%;" class="wrap">
     <el-tabs v-model="activeName" @tab-click="handleClick">
       <el-tab-pane label="输入表1" name="in-first">
         <Table1 />
